@@ -18,9 +18,17 @@ This can also be enabled programmatically with `warnings.simplefilter('default',
 
 ## [2.8.2] - Not released yet
 ### Added
+* new optional parameter `border` for table cells [issue #1192](https://github.com/py-pdf/fpdf2/issues/1192) users can define specific borders (left, right, top, bottom) for individual cells
+* [`FPDF.write_html()`](https://py-pdf.github.io/fpdf2/fpdf/fpdf.html#fpdf.fpdf.FPDF.write_html): now parses `<title>` tags to set the [document title](https://py-pdf.github.io/fpdf2/fpdf/fpdf.html#fpdf.fpdf.FPDF.set_title). By default, it is added as PDF metadata, but not rendered in the document body. However, this can be enabled by passing `render_title_tag=True` to `FPDF.write_html()`.
 * support for LZWDecode compression [issue #1271](https://github.com/py-pdf/fpdf2/issues/1271)
 ### Fixed
 * `FPDF.set_text_shaping(False)` was broken since version 2.7.8 and is now working properly - [issue #1287](https://github.com/py-pdf/fpdf2/issues/1287)
+* fixed bug where cells with `rowspan`, `colspan` > 1 and null text were not displayed properly - [issue #1293](https://github.com/py-pdf/fpdf2/issues/1293)
+### Changed
+* improved logic for handling text substitution of the total number of pages, ensuring compatibility with text shaping - [issue #1090](https://github.com/py-pdf/fpdf2/issues/1090)
+* all [`AnnotationDict`](https://py-pdf.github.io/fpdf2/fpdf/annotations.html) properties can now be passed to `FPDF.text_annotation()`, `FPDF.free_text_annotation()`,  `FPDF.add_action()`, `FPDF.add_text_markup_annotation()` & `FPDF.ink_annotation()`. This includes `title`, `color`, `border_width`...
+### Removed
+* reminder : since release `2.8.1`, `fpdf2` does not support Python 3.7, that reached [end-of-life](https://devguide.python.org/versions/#supported-versions) in 2023
 
 ## [2.8.1] - 2024-10-04
 ### Added
@@ -53,6 +61,7 @@ This can also be enabled programmatically with `warnings.simplefilter('default',
 * new translation of the tutorial in [Indonesian](https://py-pdf.github.io/fpdf2/Tutorial-id.html) - thanks to @odhyp
 * `RecursionError` in some cases when calling [`FPDF.write_html()`](https://py-pdf.github.io/fpdf2/fpdf/fpdf.html#fpdf.fpdf.FPDF.write_html) inside [`FPDF.footer()`](https://py-pdf.github.io/fpdf2/fpdf/fpdf.html#fpdf.fpdf.FPDF.footer) - [issue #1222](https://github.com/py-pdf/fpdf2/issues/1222)
 ### Removed
+* support for Python 3.7, that reached [end-of-life](https://devguide.python.org/versions/#supported-versions) in 2023
 * an obscure and undocumented [feature](https://github.com/py-pdf/fpdf2/issues/1198) of [`FPDF.write_html()`](https://py-pdf.github.io/fpdf2/fpdf/fpdf.html#fpdf.fpdf.FPDF.write_html), which used to magically pass instance attributes as arguments.
 ### Deprecated
 * `fpdf.TitleStyle` has been renamed into [`fpdf.TextStyle`](https://py-pdf.github.io/fpdf2/fpdf/fonts.html#fpdf.fonts.TextStyle)

@@ -1308,6 +1308,34 @@
       "contributions": [
         "bug"
       ]
+    },
+    {
+      "login": "opposss",
+      "name": "opposss",
+      "avatar_url": "https://avatars.githubusercontent.com/u/120234749?v=4",
+      "profile": "https://github.com/opposss",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "whoisltd",
+      "name": "Dat Le",
+      "avatar_url": "https://avatars.githubusercontent.com/u/41822445?v=4",
+      "profile": "https://linktr.ee/whoisltd",
+      "contributions": [
+        "bug",
+        "code"
+      ]
+    },
+    {
+      "login": "Kaustbh",
+      "name": "Kaustubh ",
+      "avatar_url": "https://avatars.githubusercontent.com/u/97254178?v=4",
+      "profile": "https://github.com/Kaustbh",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,

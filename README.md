@@ -59,7 +59,7 @@ pip install git+https://github.com/py-pdf/fpdf2.git@master
 
 ## Features
 
- * Python 3.7+ support
+ * Python 3.8+ support
  * [Unicode](https://py-pdf.github.io/fpdf2/Unicode.html) (UTF-8) TrueType font subset embedding
  * Internal / external [links](https://py-pdf.github.io/fpdf2/Links.html)
  * Embedding images, including transparency and alpha channel
@@ -299,6 +299,9 @@ This library could only exist thanks to the dedication of many volunteers around
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/beldaz"><img src="https://avatars.githubusercontent.com/u/1341993?v=4?s=100" width="100px;" alt="Bryn Jeffries"/><br /><sub><b>Bryn Jeffries</b></sub></a><br /><a href="https://github.com/py-pdf/fpdf2/issues?q=author%3Abeldaz" title="Bug reports">🐛</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/Benoite142"><img src="https://avatars.githubusercontent.com/u/151671747?v=4?s=100" width="100px;" alt="Benoit Charbonneau"/><br /><sub><b>Benoit Charbonneau</b></sub></a><br /><a href="#ideas-Benoite142" title="Ideas, Planning, & Feedback">🤔</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/philj56"><img src="https://avatars.githubusercontent.com/u/13610623?v=4?s=100" width="100px;" alt="Philip Jones"/><br /><sub><b>Philip Jones</b></sub></a><br /><a href="https://github.com/py-pdf/fpdf2/issues?q=author%3Aphilj56" title="Bug reports">🐛</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/opposss"><img src="https://avatars.githubusercontent.com/u/120234749?v=4?s=100" width="100px;" alt="opposss"/><br /><sub><b>opposss</b></sub></a><br /><a href="https://github.com/py-pdf/fpdf2/commits?author=opposss" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://linktr.ee/whoisltd"><img src="https://avatars.githubusercontent.com/u/41822445?v=4?s=100" width="100px;" alt="Dat Le"/><br /><sub><b>Dat Le</b></sub></a><br /><a href="https://github.com/py-pdf/fpdf2/issues?q=author%3Awhoisltd" title="Bug reports">🐛</a> <a href="https://github.com/py-pdf/fpdf2/commits?author=whoisltd" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/Kaustbh"><img src="https://avatars.githubusercontent.com/u/97254178?v=4?s=100" width="100px;" alt="Kaustubh "/><br /><sub><b>Kaustubh </b></sub></a><br /><a href="https://github.com/py-pdf/fpdf2/commits?author=Kaustbh" title="Code">💻</a></td>
     </tr>
   </tbody>
 </table>

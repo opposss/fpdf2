@@ -69,6 +69,9 @@ def test_generate_multitable_pdf_with_mock():
                     self.cell(col_width, row_height, item, border=1)
                 self.ln(row_height)
 
+        def add_image(self, image_path, x, y, w, h):
+            self.image(image_path, x=x, y=y, w=w, h=h)
+
     pdf = PDFWithTable()
 
     table_data = [
@@ -78,23 +81,27 @@ def test_generate_multitable_pdf_with_mock():
         ["Row3Col1", "Row3Col2", "Row3Col3"],
     ]
 
-    with patch.object(pdf, "cell") as mock_cell, patch.object(pdf, "ln") as mock_ln:
+    with patch.object(pdf, "cell") as mock_cell, patch.object(
+        pdf, "ln"
+    ) as mock_ln, patch.object(pdf, "image") as mock_image:
         pdf.add_page()
         pdf.add_table(table_data)
 
+        pdf.add_image(HERE / "pythonknight.png", x=10, y=100, w=50, h=50)
+
         table_cell_calls = [
-            call(40, 10, txt="Header1", border=1),
-            call(40, 10, txt="Header2", border=1),
-            call(40, 10, txt="Header3", border=1),
-            call(40, 10, txt="Row1Col1", border=1),
-            call(40, 10, txt="Row1Col2", border=1),
-            call(40, 10, txt="Row1Col3", border=1),
-            call(40, 10, txt="Row2Col1", border=1),
-            call(40, 10, txt="Row2Col2", border=1),
-            call(40, 10, txt="Row2Col3", border=1),
-            call(40, 10, txt="Row3Col1", border=1),
-            call(40, 10, txt="Row3Col2", border=1),
-            call(40, 10, txt="Row3Col3", border=1),
+            call(40, 10, "Header1", border=1),
+            call(40, 10, "Header2", border=1),
+            call(40, 10, "Header3", border=1),
+            call(40, 10, "Row1Col1", border=1),
+            call(40, 10, "Row1Col2", border=1),
+            call(40, 10, "Row1Col3", border=1),
+            call(40, 10, "Row2Col1", border=1),
+            call(40, 10, "Row2Col2", border=1),
+            call(40, 10, "Row2Col3", border=1),
+            call(40, 10, "Row3Col1", border=1),
+            call(40, 10, "Row3Col2", border=1),
+            call(40, 10, "Row3Col3", border=1),
         ]
 
         mock_cell.assert_has_calls(table_cell_calls, any_order=False)
@@ -102,12 +109,14 @@ def test_generate_multitable_pdf_with_mock():
         expected_ln_calls = [call(10)] * len(table_data)
         mock_ln.assert_has_calls(expected_ln_calls, any_order=False)
 
-        table_cells_count = len(table_data) * len(table_data[0])
-        assert mock_cell.call_count == table_cells_count + 1  # +1 из-за вызова header()
+        mock_image.assert_called_once_with(
+            HERE / "pythonknight.png", x=10, y=100, w=50, h=50
+        )
 
+        table_cells_count = len(table_data) * len(table_data[0])
+        assert mock_cell.call_count == table_cells_count + 1
         assert mock_ln.call_count == len(table_data)
 
-    # Проверяем количество страниц
     assert len(pdf.pages) == 1
 
 

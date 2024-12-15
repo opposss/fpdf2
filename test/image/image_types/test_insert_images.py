@@ -1,16 +1,309 @@
 import io
 import logging
+import os
 import sys
+from io import BytesIO
 from pathlib import Path
-
-from PIL import Image, ImageDraw, ImageFont
-import pytest
+from threading import Thread
+from unittest.mock import call, patch
 
 import fpdf
+import pytest
+from PIL import Image, ImageDraw, ImageFont, TiffImagePlugin
+from PyPDF2 import PdfReader, PdfWriter
+from fpdf import FPDF
 from fpdf.image_parsing import transcode_monochrome
+
 from test.conftest import assert_pdf_equal
 
 HERE = Path(__file__).resolve().parent
+
+
+def test_fillorder_lsb_to_msb():
+    img_data = BytesIO()
+    img = Image.new("1", (10, 10), 0)
+    img.save(
+        img_data,
+        format="TIFF",
+        compression="group4",
+        tiffinfo={TiffImagePlugin.FILLORDER: 2},
+    )
+    img_data.seek(0)
+
+    with Image.open(img_data) as test_img:
+        filename = "test.tiff"
+
+        with patch(
+            "fpdf.image_parsing.get_img_info",
+            return_value={
+                "f": "CCITTFaxDecode",
+                "cs": "DeviceGray",
+                "data": b"test_bytes",
+            },
+        ) as mock_get_img_info:
+            result = mock_get_img_info(
+                filename, test_img, image_filter="CCITTFaxDecode"
+            )
+
+            assert result["f"] == "CCITTFaxDecode"
+            assert result["cs"] == "DeviceGray"
+            assert isinstance(result["data"], bytes)
+            mock_get_img_info.assert_called_once_with(
+                filename, test_img, image_filter="CCITTFaxDecode"
+            )
+
+
+def test_generate_multitable_pdf_with_mock():
+    class PDFWithTable(FPDF):
+        def header(self):
+            self.set_font("Arial", "B", 12)
+            self.cell(0, 10, "Test Header", align="C", ln=1)
+
+        def add_table(self, data):
+            self.set_font("Arial", size=10)
+            col_width = 40
+            row_height = 10
+
+            for row in data:
+                for item in row:
+                    self.cell(col_width, row_height, item, border=1)
+                self.ln(row_height)
+
+    pdf = PDFWithTable()
+
+    table_data = [
+        ["Header1", "Header2", "Header3"],
+        ["Row1Col1", "Row1Col2", "Row1Col3"],
+        ["Row2Col1", "Row2Col2", "Row2Col3"],
+        ["Row3Col1", "Row3Col2", "Row3Col3"],
+    ]
+
+    with patch.object(pdf, "cell") as mock_cell, patch.object(pdf, "ln") as mock_ln:
+        pdf.add_page()
+        pdf.add_table(table_data)
+
+        table_cell_calls = [
+            call(40, 10, txt="Header1", border=1),
+            call(40, 10, txt="Header2", border=1),
+            call(40, 10, txt="Header3", border=1),
+            call(40, 10, txt="Row1Col1", border=1),
+            call(40, 10, txt="Row1Col2", border=1),
+            call(40, 10, txt="Row1Col3", border=1),
+            call(40, 10, txt="Row2Col1", border=1),
+            call(40, 10, txt="Row2Col2", border=1),
+            call(40, 10, txt="Row2Col3", border=1),
+            call(40, 10, txt="Row3Col1", border=1),
+            call(40, 10, txt="Row3Col2", border=1),
+            call(40, 10, txt="Row3Col3", border=1),
+        ]
+
+        mock_cell.assert_has_calls(table_cell_calls, any_order=False)
+
+        expected_ln_calls = [call(10)] * len(table_data)
+        mock_ln.assert_has_calls(expected_ln_calls, any_order=False)
+
+        table_cells_count = len(table_data) * len(table_data[0])
+        assert mock_cell.call_count == table_cells_count + 1  # +1 из-за вызова header()
+
+        assert mock_ln.call_count == len(table_data)
+
+    # Проверяем количество страниц
+    assert len(pdf.pages) == 1
+
+
+def test_broken_image():
+    broken_image = BytesIO(b"not_an_image")
+
+    with patch.object(
+        FPDF, "image", side_effect=RuntimeError("Unsupported image format")
+    ):
+        pdf = FPDF()
+        pdf.add_page()
+
+        with pytest.raises(RuntimeError, match="Unsupported image format"):
+            pdf.image(broken_image, x=10, y=10, w=50, h=50)
+
+
+def test_large_table():
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=10)
+
+    for i in range(10000):
+        pdf.cell(40, 10, f"Row {i}", border=1)
+        pdf.cell(40, 10, "Data", border=1)
+        pdf.cell(40, 10, "More Data", border=1)
+        pdf.ln()
+
+    pdf_file_path = "test_large_table.pdf"
+    pdf.output(pdf_file_path)
+    fake_file = BytesIO()
+    pdf.output(fake_file)
+    fake_file.seek(0)
+
+    reader = PdfReader(fake_file)
+    text = ""
+    for page in reader.pages:
+        text += page.extract_text()
+
+    assert "Row 999" in text, "Row 999 not found in extracted text"
+
+    with open("test_large_table.pdf", "wb") as f:
+        f.write(fake_file.getvalue())
+
+    print("Test passed and PDF saved as 'test_large_table.pdf'")
+
+
+def test_unsupported_font_error():
+    pdf = FPDF()
+    pdf.add_page()
+
+    with pytest.raises(
+        FileNotFoundError, match="TTF Font file not found: nonexistent.ttf"
+    ):
+        pdf.add_font("NonExistentFont", "", "nonexistent.ttf", uni=True)
+
+
+def test_long_text_wrapping():
+    pdf = FPDF()
+    pdf.add_page()
+    long_text = (
+        "This is a very long sentence that will hopefully wrap onto the next line."
+    )
+    pdf.set_font("Arial", size=12)
+    pdf.multi_cell(0, 10, long_text)
+
+    fake_file = BytesIO()
+    pdf.output(fake_file)
+    fake_file.seek(0)
+
+    reader = PdfReader(fake_file)
+    text = ""
+    for page in reader.pages:
+        text += page.extract_text()
+
+    assert "This is a very long sentence" in text
+
+
+def test_extreme_page_size():
+    pdf = FPDF()
+
+    extreme_size = (9999999, 9999999)
+
+    try:
+        pdf.add_page(orientation="P", format=extreme_size)
+        pdf.set_font("Arial", size=12)
+        pdf.cell(0, 10, "Extreme Page Size Test", ln=True)
+
+        fake_file = BytesIO()
+        pdf.output(fake_file)
+        fake_file.seek(0)
+
+        reader = PdfReader(fake_file)
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text()
+
+        assert "Extreme Page Size Test" in text
+
+    except (RuntimeError, ValueError, OSError) as e:
+        pytest.fail(f"Test failed due to an exception: {str(e)}")
+
+
+def test_extreme_page_size_create():
+    pdf = FPDF()
+
+    extreme_size = (9999999, 9999999)
+
+    pdf.add_page(orientation="P", format=extreme_size)
+    pdf.set_font("Arial", size=12)
+    pdf.cell(0, 10, "Extreme Page Size Test", ln=True)
+
+    output_file = "test_extreme_page_size.pdf"
+    pdf.output(output_file)
+
+    assert os.path.exists(output_file), "PDF doesnt crate"
+
+    file_size = os.path.getsize(output_file)
+    assert file_size > 0, "PDF file is empty"
+
+    os.remove(output_file)
+
+
+def test_parallel_element_addition():
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+
+    def add_cells():
+        for i in range(100):
+            pdf.cell(40, 10, f"Thread Row {i}", border=1)
+
+    threads = [Thread(target=add_cells) for _ in range(5)]
+
+    for thread in threads:
+        thread.start()
+
+    for thread in threads:
+        thread.join()
+
+    fake_file = BytesIO()
+    pdf.output(fake_file)
+    fake_file.seek(0)
+
+    reader = PdfReader(fake_file)
+    text = "".join(page.extract_text() for page in reader.pages)
+
+    assert "Thread Row 99" in text, "Last row from threads not found in PDF"
+
+
+def test_password_protected_pdf():
+    # Step 1: Create PDF with FPDF
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    pdf.cell(0, 10, "This is a password-protected PDF.", ln=True)
+
+    fake_file = BytesIO()
+    pdf.output(fake_file)
+    fake_file.seek(0)
+
+    # Step 2: Protect PDF with PyPDF2
+    writer = PdfWriter()
+    reader = PdfReader(fake_file)
+
+    for page in reader.pages:
+        writer.add_page(page)
+
+    writer.encrypt(user_password="userpass", owner_password="ownerpass")
+    protected_file = BytesIO()
+    writer.write(protected_file)
+    protected_file.seek(0)
+
+    # Step 3: Try to modify PDF with FPDF
+    protected_reader = PdfReader(protected_file)
+
+    with pytest.raises(Exception, match="File has not been decrypted"):
+        _ = protected_reader.pages[0].extract_text()  # pylint: disable=no-member
+
+    protected_reader.decrypt("userpass")
+    text = protected_reader.pages[0].extract_text()  # pylint: disable=no-member
+
+    assert "This is a password-protected PDF." in text
+
+    # Attempting to add content to a protected PDF with FPDF
+    new_pdf = FPDF()
+    new_pdf.add_page()
+    new_pdf.set_font("Arial", size=12)
+    new_pdf.cell(0, 10, "Trying to modify a protected PDF.", ln=True)
+
+    modified_file = BytesIO()
+    new_pdf.output(modified_file)
+    modified_file.seek(0)
+
+    assert (
+        modified_file.getvalue() != protected_file.getvalue()
+    ), "Modification should not affect the protected PDF."
 
 
 def test_insert_jpg(tmp_path):
@@ -58,10 +351,16 @@ def test_insert_jpg_lzwdecode(tmp_path):
     pdf.image(HERE / "insert_images_insert_jpg.jpg", x=15, y=15, h=140)
     if sys.platform in ("cygwin", "win32"):
         assert_pdf_equal(
-            pdf, HERE / "image_types_insert_jpg_lzwdecode_windows.pdf", tmp_path
+            pdf,
+            HERE / "image_types_insert_jpg_lzwdecode_windows.pdf",
+            tmp_path,
         )
     else:
-        assert_pdf_equal(pdf, HERE / "image_types_insert_jpg_lzwdecode.pdf", tmp_path)
+        assert_pdf_equal(
+            pdf,
+            HERE / "image_types_insert_jpg_lzwdecode.pdf",
+            tmp_path,
+        )
 
 
 def test_insert_jpg_cmyk(tmp_path):

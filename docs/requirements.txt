@@ -8,3 +8,4 @@ mknotebooks
 # mkdocs-macros-plugin
 # mkdocs-redirects
 pdoc3
+weasyprint>=68.0 # not directly required, pinned by Snyk to avoid a vulnerability
